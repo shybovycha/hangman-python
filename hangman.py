@@ -1,25 +1,27 @@
-import sys
-import random
-import curses
-import curses.textpad as textpad
+import sys, re, random
 
 class HangmanGame(object):
     VERSION = '0.1'
 
     def __init__(self, dictionary_path, max_mistakes = 6):
-        self.check_dictionary(dictionary_path)
         self.dictionary = self.parse_dictionary(dictionary_path)
-        self.dictionary = ['ala', 'alabama', 'moofoo']        
+        # self.dictionary = ['ala', 'alabama', 'moofoo']        
         self.max_mistakes = max_mistakes
 
     def get_word_length(self):
         return len(self.word)
 
-    def check_dictionary(self, path):
-        pass
-
     def parse_dictionary(self, path):
-        return None
+        words = set()
+
+        with open(path) as f:
+            lines = f.readlines()
+            error_lines = [ l for l in lines if not re.match(r"[a-zA-Z]", l) ]
+
+            if len(error_lines) > 0:
+                raise Exception("This file is not a Hangman's dictionary file: `{0}`".format(path))
+            
+            return lines
 
     def start(self):
         self.errors = set()
