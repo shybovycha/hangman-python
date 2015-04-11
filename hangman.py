@@ -3,32 +3,13 @@ import random
 import curses
 import curses.textpad as textpad
 
-def enter_text(placeholder = ''):
-    s = ''
-
-    try:
-        curses.initscr()
-        mainwindow = curses.newwin(1, len(placeholder), 0, 0) #initscr()
-        # Some curses-friendly terminal settings
-        curses.cbreak(); mainwindow.keypad(1); curses.noecho()
-        mainwindow.addstr(0, 0, placeholder)
-        s = textpad.Textbox(mainwindow).edit()
-    finally:
-        # Reverse curses-friendly terminal settings
-        curses.nocbreak(); mainwindow.keypad(0); curses.echo()
-        curses.endwin()
-        return s
-        # print("You've entered: {0}".format(s))
-
 class HangmanGame(object):
     VERSION = '0.1'
 
     def __init__(self, dictionary_path, max_mistakes = 6):
         self.check_dictionary(dictionary_path)
         self.dictionary = self.parse_dictionary(dictionary_path)
-        self.dictionary = ['ala', 'alabama', 'moofoo']
-        self.errors = []
-        self.guesses = []
+        self.dictionary = ['ala', 'alabama', 'moofoo']        
         self.max_mistakes = max_mistakes
 
     def get_word_length(self):
@@ -41,24 +22,21 @@ class HangmanGame(object):
         return None
 
     def start(self):
+        self.errors = set()
+        self.guesses = []
+
         self.generate_word()
 
-        """while True:
-            if self.check_endgame():
-                break
-
-            self.show_status()
-
-            letter, position = self.ask_for_letter()
-            self.guess(letter, position)"""
-
     def ask_for_letter(self):
-        text = enter_text(' '.join(list(self.word))).split(' ')
-        pairs = [ (i, e) for i, e in enumerate(text) if self.word[i] != text[i] ]
+        print("Enter the word you want to guess, placing underscores where the unguessed letters should be")
+        text = raw_input()  # enter_text(' '.join(list(self.word))).split(' ')
+        pairs = [ (i, e) for i, e in enumerate(text) if text[i] != '_' and self.guesses[i] != text[i] and self.guesses[i] == '_' ]
         pair = ()
 
         if len(pairs) < 1:
-            raise "You have not entered anything"
+            raise Exception("You have not entered anything `{0}`".format(text))
+        elif len(pairs) > 1:
+            raise Exception("You have entered too much: {0} == {1}".format(self.guesses, text.split('')))
         else:
             pair = pairs[0]
 
@@ -93,16 +71,16 @@ class HangmanGame(object):
             self.guesses[position] = letter
             return True
         else:
-            self.errors.append(letter)
+            self.errors.add(letter)
             return False
 
     def finished(self):
         if len(self.errors) >= self.max_mistakes:
             self.loose()
-            return True
+            return self.ask_for_restart()
         elif ''.join(self.guesses) == self.word:
             self.win()
-            return True
+            return self.ask_for_restart()
         else:
             return False
 
@@ -117,15 +95,11 @@ class HangmanGame(object):
             YOU WIN!
         """)
 
-        self.ask_for_restart()
-
     def loose(self):
         print("""
             YOU LOST!
             The word you were looking for is: %s
         """ % self.word)
-
-        self.ask_for_restart()
 
     def ask_for_restart(self):
         while True:
@@ -134,15 +108,13 @@ class HangmanGame(object):
             ans = raw_input().lower()
 
             if ans == "y":
-                restart = True
-                break
+                self.generate_word()
+                return False
             elif ans == "n":
-                print("Ok, good bye!\n")
-                return
+                print("Ok, good bye!")
+                return True
             else:
-                print("I did not understand you. Please, enter either Y or N\n")
-
-        start()
+                print("I did not understand you. Please, enter either Y or N")
 
 if __name__ == "__main__":
     if len(sys.argv) < 1:
